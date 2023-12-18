@@ -65,4 +65,4 @@ if keithley == keithley2450("GPIB::1"): #GPIB number must match above call
 
 ### Error Message ###
 else:
-    print("No GPIB Connection Found! Check the connection and GPIB address number")
+    print("No GPIB Connection Found! Check the connection and GPIB Address number")
