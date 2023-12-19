@@ -2,7 +2,7 @@
 #Python code to measure the current and voltage across a thermoelectric sample
 
 ### Libraries To Import ###
-from pymeasure.instruments.keithley import keithley2450
+from pymeasure.instruments.keithley import Keithley2450
 import os
 from datetime import datetime
 from time import sleep
@@ -17,14 +17,15 @@ count=[]
 now = datetime.now()
 current_date = now.strftime("%d/%m/%Y")
 current_time = now.strftime("%H:%M:%S")
+file_time = now.strftime("%H_%M_%S")
 
-### Keithley GPIB Address ###
-keithley = keithley2450("GPIB::1")
+### Keithley Port Address ###
+keithley = Keithley2450("USB0::0x05E6::0x2460::04516939::INSTR")
 
 ### Current and Voltage Measurements ###
-if keithley == keithley2450("GPIB::1"): #GPIB number must match above call
-    keithley.beep(2E3,2) #Beep to confirm connection (Hz, seconds)
+if keithley.id == "KEITHLEY INSTRUMENTS,MODEL 2460,04516939,1.7.7b": #ID of the Keithley system
     keithley.reset()
+    #keithley.beep(5E2,1) #Beep to confirm connection (Hz, seconds)
     keithley.use_front_terminals()
 
     for i in range(0,10,1): #How many meaurements made in 1 run (start, finish, step). All numbers must be integers
@@ -49,13 +50,15 @@ if keithley == keithley2450("GPIB::1"): #GPIB number must match above call
 
     keithley.shutdown()
 
+    Results = [count, voltage, current]
+
     ### Save Results to txt File ###
-    with open("Thermoeletric_Results"+current_time+".txt", "w") as file:
+    with open("Thermoeletric_Results_"+ file_time +".txt", "w") as file:
         file.write(current_date +"\t" + current_time)
-        file.write("")
-        file.write("Count (#) \t Voltage (V) \t Current (A)")
-        for t in len(count):
-            file.write(count[t] + "\t" + voltage[t] + "\t" + current [t])
+        file.write("\n")
+        file.write("Count (#) \t Voltage (V) \t Current (A) \n")
+        for x in zip(*Results):
+            file.write("{0}\t{1}\t{2}\n".format(*x))
         file.close()
 
     ### Print Results to Help Debug ###
@@ -65,4 +68,4 @@ if keithley == keithley2450("GPIB::1"): #GPIB number must match above call
 
 ### Error Message ###
 else:
-    print("No GPIB Connection Found! Check the connection and GPIB Address number")
+    print("No Connection Found! Check The Connection and Port Address Number")
