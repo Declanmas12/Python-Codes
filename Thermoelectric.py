@@ -12,10 +12,10 @@ import numpy as np
 keithley = Keithley2450("USB0::0x05E6::0x2460::04516939::INSTR")
 
 ### Current and Voltage Measurements ###
-if keithley.id == "KEITHLEY INSTRUMENTS,MODEL 2460,04516939,1.7.7b": #ID of the Keithley system
+if keithley.id == "KEITHLEY INSTRUMENTS,MODEL 2460,04516939,1.7.7b": # ID of the Keithley system
     keithley.reset()
-    keithley.beep(5E2,1) #Beep to confirm connection (Hz, seconds)
-    keithley.use_front_terminals()
+    keithley.beep(5E2,1) # Beep to confirm connection (Hz, seconds)
+    keithley.use_front_terminals() # Sets output to the front terminals
 
     ### Measurement Lists ###
     voltage=[]
@@ -29,16 +29,16 @@ if keithley.id == "KEITHLEY INSTRUMENTS,MODEL 2460,04516939,1.7.7b": #ID of the 
     file_time = now.strftime("%H_%M_%S")
 
 
-    for i in range(0,10,1): #How many meaurements made in 1 run (start, finish, step). All numbers must be integers
+    for i in range(0,10,1): # How many meaurements made in 1 run (start, finish, step). All numbers must be integers
 
         count.append(i)
 
-        keithley.apply_current() #set-up source 
-        keithley.compliance_voltage = 1 #Max voltage value before error
-        keithley.source_current = 0 #applied current
-        keithley.enable_source() #applies source
-        keithley.measure_voltage(auto_range=True) #measures the voltage
-        voltage.append(keithley.voltage) #adds voltage value to list
+        keithley.apply_current() # set-up source 
+        keithley.compliance_voltage = 1 # Max voltage value before error
+        keithley.source_current = 0 # applied current value
+        keithley.enable_source() # applies source
+        keithley.measure_voltage(auto_range=True) # measures the voltage
+        voltage.append(keithley.voltage) # adds voltage value to list
 
         keithley.apply_voltage()
         keithley.compliance_current = 1
@@ -47,14 +47,14 @@ if keithley.id == "KEITHLEY INSTRUMENTS,MODEL 2460,04516939,1.7.7b": #ID of the 
         keithley.measure_current(auto_range=True)
         current.append(keithley.current)
 
-        sleep(1) #system rests before running again (seconds)
+        sleep(1) # system rests before running again (seconds)
 
     keithley.shutdown()
 
     Results = [count, voltage, current]
 
     ### Save Results to txt File ###
-    with open("Thermoeletric_Results_"+ file_time +".txt", "w") as file:
+    with open("Thermoeletric_Results_"+ file_time +".txt", "w") as file: # file name and type
         file.write(current_date +"\t" + current_time)
         file.write("\n")
         file.write("Count (#) \t Voltage (V) \t Current (A) \n")
