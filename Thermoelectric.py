@@ -8,25 +8,26 @@ from datetime import datetime
 from time import sleep
 import numpy as np
 
-### Measurement Lists ###
-voltage=[]
-current=[]
-count=[]
-
-### Time and Date ###
-now = datetime.now()
-current_date = now.strftime("%d/%m/%Y")
-current_time = now.strftime("%H:%M:%S")
-file_time = now.strftime("%H_%M_%S")
-
 ### Keithley Port Address ###
 keithley = Keithley2450("USB0::0x05E6::0x2460::04516939::INSTR")
 
 ### Current and Voltage Measurements ###
 if keithley.id == "KEITHLEY INSTRUMENTS,MODEL 2460,04516939,1.7.7b": #ID of the Keithley system
     keithley.reset()
-    #keithley.beep(5E2,1) #Beep to confirm connection (Hz, seconds)
+    keithley.beep(5E2,1) #Beep to confirm connection (Hz, seconds)
     keithley.use_front_terminals()
+
+    ### Measurement Lists ###
+    voltage=[]
+    current=[]
+    count=[]
+
+    ### Time and Date ###
+    now = datetime.now()
+    current_date = now.strftime("%d/%m/%Y")
+    current_time = now.strftime("%H:%M:%S")
+    file_time = now.strftime("%H_%M_%S")
+
 
     for i in range(0,10,1): #How many meaurements made in 1 run (start, finish, step). All numbers must be integers
 
@@ -60,11 +61,6 @@ if keithley.id == "KEITHLEY INSTRUMENTS,MODEL 2460,04516939,1.7.7b": #ID of the 
         for x in zip(*Results):
             file.write("{0}\t{1}\t{2}\n".format(*x))
         file.close()
-
-    ### Print Results to Help Debug ###
-    #print("Voltage (V) \t Current (A)")
-    #for y in len(voltage):
-        #print(voltage[y] + "\t" + current[y])
 
 ### Error Message ###
 else:
