@@ -28,7 +28,6 @@ if keithley.id == "KEITHLEY INSTRUMENTS,MODEL 2460,04516939,1.7.7b": # ID of the
     current_time = now.strftime("%H:%M:%S")
     file_time = now.strftime("%H_%M_%S")
 
-
     for i in range(0,10,1): # How many meaurements made in 1 run (start, finish, step). All numbers must be integers
 
         count.append(i)
