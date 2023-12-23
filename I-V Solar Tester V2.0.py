@@ -4,6 +4,7 @@
 
 # UI and functionality imports
 from pymeasure.instruments.keithley import Keithley2450
+import pyvisa
 import PySimpleGUI as sg
 import os
 from datetime import datetime
@@ -17,6 +18,18 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import matplotlib.pyplot as plt
 import matplotlib
 matplotlib.use('TkAgg')
+
+# Sourcemeter resource and model selector
+resources = []
+model = []
+rm = pyvisa.ResourceManager()
+equipment = rm.list_resources()
+for i in range(0, len(equipment), 1):
+    resources.append(equipment[i])
+
+lst1 = sg.Combo(resources, font=('Arial Bold', 14),  expand_x=True, enable_events=True,  readonly=False, key='-Resource-')
+lst2 = sg.Combo(model, font=('Arial Bold', 14),  expand_x=True, enable_events=True,  readonly=False, key='-Model-')
+    
 
 # IV Sweep Function
 def ivsweep(Volts):
@@ -64,7 +77,14 @@ tab1_layout = [[sg.Push(), sg.Text("Solar Simulator IV Sweep V2.0"), sg.Push()],
 [sg.Button("Run"),sg.Button("Exit")],
 [sg.Push(), sg.Text("MicroLink Devices UK LTD 2023"), sg.Push()]]
 
-tab2_layout = [[sg.Push(), sg.Radio("AM1.5G", "Sun In", default=True), sg.Radio("AM0", "Sun In", default=False), sg.Push()], 
+tab2_layout = [[sg.Text("Resource", font=("bold"))],
+[lst1],
+[sg.VerticalSeparator()],
+[sg.Text("Sourcemeter Model", font=("bold"))],
+[lst2],
+[sg.VerticalSeparator()],
+[sg.Push(), sg.Text("IV Sweep Parameters", font=("bold")), sg.Push()],
+[sg.Push(), sg.Radio("AM1.5G", "Sun In", default=True), sg.Radio("AM0", "Sun In", default=False), sg.Push()], 
 [sg.Push(), sg.Text('Start Voltage (V)', size=(15, 1)), sg.InputText("1.2", key='-Sv-'), sg.Text('End Voltage (V)', size=(15, 1)), sg.InputText("-0.5", key='-Ev-'), sg.Text('Voltage Steps (V)', size=(15, 1)), sg.InputText("0.005", key='-Step-'), sg.Push()]]
 
 layout = [[sg.TabGroup([[sg.Tab('I-V Scan', tab1_layout), sg.Tab('Settings', tab2_layout)]])]]
@@ -92,14 +112,14 @@ while True:
     if event == "Run":
         ### Keithley Port Address ###
         try:
-            keithley = Keithley2450("USB0::0x05E6::0x2460::04516939::INSTR")
+            keithley = Keithley2450(values['-Resource-'])
         except:
-            sg.popup("Keithley Not Connected!")
+            sg.popup("Incorrect Resource Selected!")
             continue
 
         ### Current and Voltage Measurements ###
         try:
-            if keithley.id == "KEITHLEY INSTRUMENTS,MODEL 2460,04516939,1.7.7b": # ID of the Keithley system
+            if keithley.id == values['-Model-']: # ID of the Keithley system
                 keithley.reset()
                 keithley.beep(5E2, 1) # Beep to confirm connection (Hz, seconds)
                 keithley.use_front_terminals() # Sets output to the front terminals
@@ -210,7 +230,7 @@ while True:
 
         ### Error Message ###
         except:
-            sg.popup("Wrong Keithley Model Used! Please check the right model is called in the code")
+            sg.popup("No Keithley Model Selected")
             continue
 
         # Saving the table as a CSV
@@ -252,6 +272,14 @@ while True:
     if event == "Clear Table":
         rows=[]
         tbl1.update(values=rows)
+
+    if event == "-Resource-":
+        try:
+            model.append(keithley.id)
+            window.Refresh()
+        except:
+            model =[]
+            sg.popup("No sourcemeter connected to this resource!")
 
     # End program if user closes window or presses exir
     if event == "Exit" or event == sg.WIN_CLOSED:
