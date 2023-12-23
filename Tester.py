@@ -1,0 +1,106 @@
+import PySimpleGUI as sg
+import matplotlib.pyplot as plt
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+from time import sleep
+from datetime import datetime
+import random as rnd
+import os
+
+sg.theme('Topanga')
+
+toprow=['Date', 'Time','Voltage (V)', 'Current (A)', 'Power (W)']
+rows=[]
+
+tbl1 = sg.Table(values=rows, headings=toprow,
+   auto_size_columns=True,
+   display_row_numbers=False,
+   justification='center', key='-TABLE-',
+   selected_row_colors='red on yellow',
+   enable_events=True,
+   expand_x=True,
+   expand_y=True,
+ enable_click_events=True)
+
+tab1_layout = [[sg.Push(), sg.Text("Thermoelectric Measurement V1"), sg.Push()],
+[sg.Push(), sg.Text('Maximum Voltage (V)', size=(20, 1)), sg.InputText("1",key='-Mv-'), sg.Text('Maximum Current (A)', size=(20, 1)), sg.InputText(key='-Mc-'), sg.Push()], 
+[sg.Push(), sg.Text('Number of Scans', size=(20, 1)), sg.InputText(key='-No-'), sg.Text('Time Between Scans (s)', size=(20, 1)), sg.InputText(key='-Time-'), sg.Push()],
+[tbl1],
+[sg.Button("Clear Table")],
+[sg.Input(expand_x=True, key='-FILE-'), sg.Button('SaveAs'), sg.Button('Save Table')],
+[sg.Button("Run"),sg.Button("Exit")],
+[sg.Push(), sg.Text("Dr. Declan Hughes & Dr. Geraint Howells 2023"), sg.Push()]]
+
+tab2_layout = [[sg.T("Hello")]]
+
+layout = [[sg.TabGroup([[sg.Tab('Tab 1', tab1_layout), sg.Tab('Tab 2', tab2_layout)]])]]
+
+x=[]
+y=[]
+
+# Create the window
+window = sg.Window("DH-Thermoelectric", layout, resizable=True, finalize=True)
+
+# Create an event loop
+while True:
+
+    now = datetime.now()
+    current_date = now.strftime("%d/%m/%Y")
+    current_time = now.strftime("%H:%M:%S")
+    file_time = now.strftime("%H_%M_%S")
+
+    event, values = window.read()
+
+    if event == "Run":
+        try:
+            for i in range(0,int(values['-No-']),1):
+
+                x1=rnd.randint(1,100)
+                y1=rnd.randint(1,100)
+
+                x.append(x1)
+                y.append(y1)
+
+                now = datetime.now()
+                current_date = now.strftime("%d/%m/%Y")
+                current_time = now.strftime("%H:%M:%S")
+
+                rows.append([current_date, current_time, str(x1), str(y1), str(x1*y1)])
+                tbl1.update(values=rows)
+                window.refresh()
+
+                sleep(float(values['-Time-']))
+        except:
+            if values['-No-'] == str():
+                sg.popup("Need to give number of scans number")
+            if values['-Time-'] == str() and int(values['-No-']) > 1:
+                sg.popup("Need to give time between scans (can be 0)")
+
+    if event == "Clear Table":
+        rows=[]
+        x=[]
+        y=[]
+        tbl1.update(values=rows)
+
+    # End program if user closes window or presses exir
+    if event == "Exit" or event == sg.WIN_CLOSED:
+        break
+
+    elif event == 'SaveAs':
+        filename = values['-FILE-']
+        filename = sg.popup_get_file("Save As", default_extension='.csv', default_path=filename, save_as=True, file_types=(("All CSV Files", "*.csv"),), no_window=True)
+        if filename:
+            window['-FILE-'].update(filename)
+
+    elif event == 'Save Table':
+        filename = values['-FILE-']
+        if filename:
+            try:
+                with open(filename, 'wt') as f:
+                    f.write('\n'.join([','.join(item) for item in [toprow]+rows]))
+                sg.popup(f"File {repr(filename)} Saved !!!")
+                continue
+            except PermissionError:
+                pass
+        sg.popup(f"Cannot open file {repr(filename)} !!!")
+
+window.close()

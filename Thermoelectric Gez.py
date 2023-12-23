@@ -1,5 +1,6 @@
-#Dr. D.Hughes 14/12/2023
-#Python code to measure the current and voltage across a thermoelectric sample
+# Dr. D.Hughes 14/12/2023
+# MicroLink Devices UK LTD
+### Python code to measure the current and voltage across a thermoelectric sample ###
 
 ### Libraries To Import ###
 from pymeasure.instruments.keithley import Keithley2450
@@ -10,10 +11,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 ### Keithley Port Address ###
-keithley = Keithley2450("USB0::0x05E6::0x2460::04516939::INSTR")
+keithley = Keithley2450("GPIB::16")
 
 ### Current and Voltage Measurements ###
-if keithley.id == "KEITHLEY INSTRUMENTS,MODEL 2460,04516939,1.7.7b": # ID of the Keithley system
+if keithley.id == "KEITHLEY INSTRUMENTS,MODEL 2450,04365704,1.6.4c": # ID of the Keithley system
     keithley.reset()
     keithley.beep(5E2, 1) # Beep to confirm connection (Hz, seconds)
     keithley.use_front_terminals() # Sets output to the front terminals
@@ -22,6 +23,7 @@ if keithley.id == "KEITHLEY INSTRUMENTS,MODEL 2460,04516939,1.7.7b": # ID of the
     voltage=[]
     current=[]
     count=[]
+    power=[]
 
     ### Time and Date ###
     now = datetime.now()
@@ -47,6 +49,8 @@ if keithley.id == "KEITHLEY INSTRUMENTS,MODEL 2460,04516939,1.7.7b": # ID of the
         keithley.measure_current(auto_range=True)
         current.append(keithley.current)
 
+        power.append((keithley.voltage * keithley.current)/4)
+
         sleep(1) # system rests before running again (seconds)
 
     keithley.shutdown()
@@ -60,27 +64,29 @@ if keithley.id == "KEITHLEY INSTRUMENTS,MODEL 2460,04516939,1.7.7b": # ID of the
     ax1.set_ylabel("Current (A)")
     ax2.set_xlabel("Counts")
     ax2.set_ylabel("Voltage (V)")
-    plt.title("Current and Voltage - " + current_date + " - "+ current_time)
+    plt.title("Current & Voltage - " + current_date + " - "+ current_time)
     plt.legend()
     plt.show()
-
+    plt.savefig("Current & Voltage - " +file_time+".png")
 
     ### Data Analysis and Sorting ###
-    avg_V = np.average(voltage)
-    err_V = np.std(voltage)
-    avg_C = np.average(current)
-    err_C = np.std(current)
-    Results = [count, voltage, current]
+    avg_V = str(np.average(voltage))
+    err_V = str(np.std(voltage))
+    avg_C = str(np.average(current))
+    err_C = str(np.std(current))
+    avg_pow = str(np.average(power))
+    err_pow = str(np.std(power))
+    Results = [count, voltage, current, power]
 
     ### Save Results to txt File ###
     with open("Thermoeletric_Results_"+ file_time +".txt", "w") as file: # file name and type
         file.write(current_date +"\t" + current_time)
         file.write("\n")
-        file.write("Count (#) \t Voltage (V) \t Current (A) \n")
+        file.write("Count (#) \t Voltage (V) \t Current (A) \t Power (W) \n")
         for x in zip(*Results):
-            file.write("{0}\t{1}\t{2}\n".format(*x))
-        file.write("\n Average: \t "+ avg_V +"\t"+ avg_C)
-        file.write("\n Error: \t "+ err_V +"\t"+ err_C)
+            file.write("{0}\t{1}\t{2}\t{3}\n".format(*x))
+        file.write("\n Average: \t "+ avg_V +"\t"+ avg_C +"\t"+ avg_pow)
+        file.write("\n Error: \t "+ err_V +"\t"+ err_C +"\t"+ err_pow)
         file.close()
 
 ### Error Message ###
