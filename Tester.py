@@ -1,6 +1,11 @@
 import PySimpleGUI as sg
-import matplotlib.pyplot as plt
+
+from matplotlib.ticker import NullFormatter
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+import matplotlib.pyplot as plt
+import matplotlib
+matplotlib.use('TkAgg')
+
 from time import sleep
 from datetime import datetime
 import random as rnd
@@ -16,15 +21,22 @@ tbl1 = sg.Table(values=rows, headings=toprow,
    display_row_numbers=False,
    justification='center', key='-TABLE-',
    selected_row_colors='red on yellow',
+   select_mode=sg.TABLE_SELECT_MODE_BROWSE,
    enable_events=True,
    expand_x=True,
    expand_y=True,
  enable_click_events=True)
 
+def draw_figure(canvas, figure):
+    figure_canvas_agg = FigureCanvasTkAgg(figure, canvas)
+    figure_canvas_agg.draw()
+    figure_canvas_agg.get_tk_widget().pack(side='top', fill='both', expand=1)
+    return figure_canvas_agg
+
 tab1_layout = [[sg.Push(), sg.Text("Thermoelectric Measurement V1"), sg.Push()],
 [sg.Push(), sg.Text('Maximum Voltage (V)', size=(20, 1)), sg.InputText("1",key='-Mv-'), sg.Text('Maximum Current (A)', size=(20, 1)), sg.InputText(key='-Mc-'), sg.Push()], 
-[sg.Push(), sg.Text('Number of Scans', size=(20, 1)), sg.InputText(key='-No-'), sg.Text('Time Between Scans (s)', size=(20, 1)), sg.InputText(key='-Time-'), sg.Push()],
-[tbl1],
+[sg.Push(), sg.Text('Number of Scans', size=(20, 1)), sg.InputText("1", key='-No-'), sg.Text('Time Between Scans (s)', size=(20, 1)), sg.InputText(key='-Time-'), sg.Push()],
+[tbl1, sg.Canvas(key='-Graph-')],
 [sg.Button("Clear Table")],
 [sg.Input(expand_x=True, key='-FILE-'), sg.Button('SaveAs'), sg.Button('Save Table')],
 [sg.Button("Run"),sg.Button("Exit")],
@@ -40,6 +52,10 @@ y=[]
 # Create the window
 window = sg.Window("DH-Thermoelectric", layout, resizable=True, finalize=True)
 
+fig = matplotlib.figure.Figure(dpi=100)
+fig.add_subplot(111)
+fig_canvas_agg = draw_figure(window['-Graph-'].TKCanvas, fig)
+
 # Create an event loop
 while True:
 
@@ -52,7 +68,10 @@ while True:
 
     if event == "Run":
         try:
+
             for i in range(0,int(values['-No-']),1):
+
+                fig_canvas_agg.get_tk_widget().forget()
 
                 x1=rnd.randint(1,100)
                 y1=rnd.randint(1,100)
@@ -66,9 +85,14 @@ while True:
 
                 rows.append([current_date, current_time, str(x1), str(y1), str(x1*y1)])
                 tbl1.update(values=rows)
+
+                fig = matplotlib.figure.Figure(dpi=100)
+                fig.add_subplot(111).plot(x,y)
+                fig_canvas_agg = draw_figure(window['-Graph-'].TKCanvas, fig)
                 window.refresh()
 
                 sleep(float(values['-Time-']))
+
         except:
             if values['-No-'] == str():
                 sg.popup("Need to give number of scans number")
@@ -85,6 +109,13 @@ while True:
     if event == "Exit" or event == sg.WIN_CLOSED:
         break
 
+    if '+CLICKED+' in event:
+        try:
+            print("{}".format(event[2][0]))
+        except:
+            sg.popup("No Data Currently In The Table")
+            continue
+    
     elif event == 'SaveAs':
         filename = values['-FILE-']
         filename = sg.popup_get_file("Save As", default_extension='.csv', default_path=filename, save_as=True, file_types=(("All CSV Files", "*.csv"),), no_window=True)

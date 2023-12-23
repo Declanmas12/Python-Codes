@@ -22,6 +22,7 @@ matplotlib.use('TkAgg')
 # Sourcemeter resource and model selector
 resources = []
 model = []
+Type =['Keithley2450']
 rm = pyvisa.ResourceManager()
 equipment = rm.list_resources()
 for i in range(0, len(equipment), 1):
@@ -29,6 +30,7 @@ for i in range(0, len(equipment), 1):
 
 lst1 = sg.Combo(resources, font=('Arial Bold', 14),  expand_x=True, enable_events=True,  readonly=False, key='-Resource-')
 lst2 = sg.Combo(model, font=('Arial Bold', 14),  expand_x=True, enable_events=True,  readonly=False, key='-Model-')
+lst3 = sg.Combo(Type, font=('Arial Bold', 14),  expand_x=True, enable_events=True,  readonly=False, key='-Type-')
     
 
 # IV Sweep Function
@@ -55,13 +57,14 @@ y_total = []
 sg.theme('TealMono')
 
 # Table Design
-toprow=['', 'Date', 'Cell ID', 'PCE (%)', 'Voc (V)', 'Jsc (A/cm2)', 'Fill Factor (%)', 'Isc (A)', 'Pmax (W)']
+toprow=['Date', 'Cell ID', 'PCE (%)', 'Voc (V)', 'Jsc (A/cm2)', 'Fill Factor (%)', 'Isc (A)', 'Pmax (W)']
 rows=[]
 
 tbl1 = sg.Table(values=rows, headings=toprow,
    auto_size_columns=True,
    display_row_numbers=False,
    justification='center', key='-TABLE-',
+   select_mode=sg.TABLE_SELECT_MODE_BROWSE,
    selected_row_colors='red on yellow',
    enable_events=True,
    expand_x=True,
@@ -69,7 +72,7 @@ tbl1 = sg.Table(values=rows, headings=toprow,
  enable_click_events=True)
 
 # UI Layout and Design
-tab1_layout = [[sg.Push(), sg.Text("Solar Simulator IV Sweep V2.0"), sg.Push()],
+tab1_layout = [[sg.Push(), sg.Text("Solar Simulator IV Sweep Ver. 2.1"), sg.Push()],
 [sg.Text('Cell ID', size=(5, 1)), sg.InputText(key='-ID-'), sg.Text('Cell Area (cm2)', size=(12, 1)), sg.InputText(key='-Size-')],
 [tbl1, sg.Canvas(key='-Graph-')],
 [sg.Button("Clear Table"), sg.Push(), sg.Button("Save PNG"), sg.Button("Save JPEG")],
@@ -77,10 +80,13 @@ tab1_layout = [[sg.Push(), sg.Text("Solar Simulator IV Sweep V2.0"), sg.Push()],
 [sg.Button("Run"),sg.Button("Exit")],
 [sg.Push(), sg.Text("MicroLink Devices UK LTD 2023"), sg.Push()]]
 
-tab2_layout = [[sg.Text("Resource", font=("bold"))],
+tab2_layout = [[sg.Text("Sourcemeter Model", font=("bold"))],
+[lst3],
+[sg.VerticalSeparator()],
+[sg.Text("Sourcemeter Address", font=("bold"))],
 [lst1],
 [sg.VerticalSeparator()],
-[sg.Text("Sourcemeter Model", font=("bold"))],
+[sg.Text("Sourcemeter Resource", font=("bold"))],
 [lst2],
 [sg.VerticalSeparator()],
 [sg.Push(), sg.Text("IV Sweep Parameters", font=("bold")), sg.Push()],
@@ -93,11 +99,9 @@ layout = [[sg.TabGroup([[sg.Tab('I-V Scan', tab1_layout), sg.Tab('Settings', tab
 window = sg.Window("MLDUK - IV Tester", layout, resizable=True, finalize=True)
 
 # Draw the plot area
-fig = matplotlib.figure.Figure(figsize=(5, 4), dpi=100)
+fig = matplotlib.figure.Figure(dpi=100)
+fig.add_subplot(111)
 fig_canvas_agg = draw_figure(window['-Graph-'].TKCanvas, fig)
-
-# Row Number
-Num=0
 
 # Create an event loop
 while True:
@@ -149,18 +153,25 @@ while True:
                 # I-V Sweep (Step size is now automatically calculated in the right direction)
                 try:
                     for mv in np.arange(float(values['-Sv-']), float(values['-Ev-']), Steps):
+                        
+                        fig_canvas_agg.get_tk_widget().forget() # Clears graph every iteration to update it
+                        
                         ivsweep(mv)
                         voltage.append(keithley.voltage)
                         current.append(keithley.current)
                         jsc.append(keithley.current/float(values['-Size-']))
                         power.append(float(keithley.voltage * (keithley.current)/float(values['-Size-'])))
-                        fig.plot(voltage, current) # Creates the graph
-                        window.Refresh() # Draw graph in real time
+
+                        fig = matplotlib.figure.Figure(dpi=100)
+                        fig.add_subplot(111).plot(voltage, current)
+                        fig_canvas_agg = draw_figure(window['-Graph-'].TKCanvas, fig)# Recreates the graph
+                        window.Refresh() # Update the graph
 
                 # Look at previous scans
                     x_total.append(voltage)
                     y_total.append(current)
 
+                # Null Parameter Errors
                 except:
                     if values['-Sv-'] == str():
                         sg.popup("Please enter starting voltage")
@@ -169,7 +180,7 @@ while True:
                     if values['-Size-'] == str():
                         sg.popup("Please enter cell area")
 
-                #Maximum power, voltage, current, and fill factor
+                #M aximum power, voltage, current, and fill factor
                 pmax = float(max(power))
                 vmax = float(voltage[power.index(max(power))])
                 jmax = float(jsc[power.index(max(power))])
@@ -181,8 +192,7 @@ while True:
                 pce = float((voc*isc*FF)/Pin)
 
                 # Adds value to the table rows
-                rows.append([str(Num),
-                current_date, 
+                rows.append([current_date, 
                 str(values['-ID-']),
                 str(pce),
                 str(voc), 
@@ -190,8 +200,6 @@ while True:
                 str(jsc),
                 str(FF),
                 str(pmax)])
-
-                Num += 1
 
                 ### Create folder and save IV curves to txt File ###
                 Results = [voltage, current, jsc]
@@ -210,7 +218,7 @@ while True:
                         file.close()
                 else:
                     os.chdir('./'+file_date)
-                    with open('./'+file_date + file_time + values['-ID-'] + ".txt", "w") as file: # file name and type
+                    with open(file_date + file_time + values['-ID-'] + ".txt", "w") as file: # file name and type
                         file.write(current_date +"\t" + current_time)
                         file.write("\n")
                         file.write(values['-ID-'])
@@ -255,15 +263,22 @@ while True:
 
     if '+CLICKED+' in event:
         try:
-            fig.clf()
-            fig.plot(x_total[int(toprow[0])], y_total[int(toprow[0])])
-            window.Refesh()
+            fig_canvas_agg.get_tk_widget().forget() # Clears graph to update it
+            fig = matplotlib.figure.Figure(dpi=100) # Creates graph window
+            fig.add_subplot(111).plot(x_total[int("{}".format(event[2][0]))], y_total[int("{}".format(event[2][0]))])
+            fig_canvas_agg = draw_figure(window['-Graph-'].TKCanvas, fig)# Recreates the graph
+            window.Refresh() # Update the graph
+
         except:
+            fig = matplotlib.figure.Figure(dpi=100) # Creates graph window
+            fig.add_subplot(111)
+            fig_canvas_agg = draw_figure(window['-Graph-'].TKCanvas, fig)# Recreates the graph
+            window.Refresh() # Update the graph
             sg.popup("No Data Currently In The Table")
             continue
       
     if event == "Save PNG":
-        fig.savefig(values['-ID-']+file_time+'.png')
+        fig.savefig(values['-ID-']+ '-' +file_time+'.png')
 
     if event == "Save JPEG":
         fig.savefig(values['-ID-']+ '-' +file_time+'.jpeg')
@@ -271,6 +286,8 @@ while True:
      # Clears table on button press
     if event == "Clear Table":
         rows=[]
+        x_total = []
+        y_total = []
         tbl1.update(values=rows)
 
     if event == "-Resource-":
