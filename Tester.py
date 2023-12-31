@@ -48,6 +48,8 @@ layout = [[sg.TabGroup([[sg.Tab('Tab 1', tab1_layout), sg.Tab('Tab 2', tab2_layo
 
 x=[]
 y=[]
+x_total = []
+y_total=[]
 
 # Create the window
 window = sg.Window("DH-Thermoelectric", layout, resizable=True, finalize=True)
@@ -87,7 +89,7 @@ while True:
                 tbl1.update(values=rows)
 
                 fig = matplotlib.figure.Figure(dpi=100)
-                fig.add_subplot(111).plot(x,y)
+                fig.add_subplot(111).scatter(x,y)
                 fig_canvas_agg = draw_figure(window['-Graph-'].TKCanvas, fig)
                 window.refresh()
 

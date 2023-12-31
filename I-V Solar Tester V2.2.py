@@ -72,7 +72,7 @@ tbl1 = sg.Table(values=rows, headings=toprow,
  enable_click_events=True)
 
 # UI Layout and Design
-tab1_layout = [[sg.Push(), sg.Text("Solar Simulator IV Sweep Ver. 2.1"), sg.Push()],
+tab1_layout = [[sg.Push(), sg.Text("Solar Simulator IV Sweep Ver. 2.2"), sg.Push()],
 [sg.Text('Cell ID', size=(5, 1)), sg.InputText(key='-ID-'), sg.Text('Cell Area (cm2)', size=(12, 1)), sg.InputText(key='-Size-')],
 [tbl1, sg.Canvas(key='-Graph-')],
 [sg.Button("Clear Table"), sg.Push(), sg.Button("Save PNG"), sg.Button("Save JPEG")],
@@ -183,13 +183,15 @@ while True:
                 #M aximum power, voltage, current, and fill factor
                 pmax = float(max(power))
                 vmax = float(voltage[power.index(max(power))])
+                imax = float(current[power.index(max(power))])
                 jmax = float(jsc[power.index(max(power))])
                 voc = float(voltage[current.index(ma.isclose(0, rel_tol=1e-5))])
                 isc = float(current[voltage.index(ma.isclose(0, rel_tol=1e-5))])
                 jsc = float(current[voltage.index(ma.isclose(0, rel_tol=1e-5))]/float(values['-Size-']))
+                ff = float((pmax/(jsc*voc)))
                 FF = float((pmax/(jsc*voc))*100)
                 Pin = float(Sun_Intensity*float(values['-Size-'])) #AM1.5G 100 mW/cm2
-                pce = float((voc*isc*FF)/Pin)
+                pce = float((voc*isc*ff)/Pin)
 
                 # Adds value to the table rows
                 rows.append([current_date, 
@@ -212,6 +214,10 @@ while True:
                         file.write("\n")
                         file.write(values['-ID-'])
                         file.write("\n")
+                        file.write("\n")
+                        file.write("PCE (%) \t Voc (V) \t Jsc (A/cm2) \t FF(%) \t Isc (A) \t Pmax (W) \t Vmax (V) \t Imax (A)\n")
+                        file.write(pce + "\t" + voc + "\t" + jsc + "\t" + FF + "\t" + isc + "\t" + pmax + "\t" + vmax + "\t" + imax + "\n")
+                        file.write("\n")
                         file.write("Voltage (V) \t Current (A) \t Current Density (A/cm2) \n")
                         for x in zip(*Results):
                             file.write("{0}\t{1}\t{2}\n".format(*x))
@@ -222,6 +228,9 @@ while True:
                         file.write(current_date +"\t" + current_time)
                         file.write("\n")
                         file.write(values['-ID-'])
+                        file.write("\n")
+                        file.write("PCE (%) \t Voc (V) \t Jsc (A/cm2) \t FF(%) \t Isc (A) \t Pmax (W) \t Vmax (V) \t Imax (A)\n")
+                        file.write(pce + "\t" + voc + "\t" + jsc + "\t" + FF + "\t" + isc + "\t" + pmax + "\t" + vmax + "\t" + imax + "\n")
                         file.write("\n")
                         file.write("Voltage (V) \t Current (A) \t Current Density (A/cm2) \n")
                         for x in zip(*Results):
